@@ -6,49 +6,48 @@ import time
 # from jasset.models import Asset, AssetGroup
 
 
-class UserGroup(models.Model):
-    name = models.CharField(max_length=80, unique=True)
-    comment = models.CharField(max_length=160, blank=True, null=True)
+class Checker(models.Model):
+    checker_um = models.CharField(max_length=50, unique=True)
+    checker_name = models.CharField(max_length=50, null=True)
+    checker_role = models.CharField(max_length=100, null=True)
 
     def __unicode__(self):
-        return self.name
+        return self.checker_name
 
 
-class User(AbstractUser):
-    USER_ROLE_CHOICES = (
-        ('SU', 'SuperUser'),
-        ('GA', 'GroupAdmin'),
-        ('CU', 'CommonUser'),
+class CheckOrder(models.Model):
+    check_order = models.IntegerField(unique=True)
+    checker = models.ForeignKey(Checker, related_name='check_order')
+    check_desc = models.CharField(max_length=100, null=True)
+   
+
+
+class RightApply(models.Model):
+    app_name = models.CharField(max_length=100, unique=True)
+    app_desc = models.CharField(max_length=100, null=True)
+    insert_time = models.TimeField(auto_now=True)
+    finish_time = models.TimeField(null=True)
+    checkorder = models.ForeignKey(CheckOrder, related_name='right_app')
+    asset = models.ManyToManyField(Asset, related_name='right_app')
+    asset_group = models.ManyToManyField(AssetGroup, related_name='right_app')
+    user = models.ManyToManyField(User, related_name='right_app')
+    user_group = models.ManyToManyField(UserGroup, related_name='right_app')
+    role = models.ManyToManyField(PermRole, related_name='right_app')
+    APP_TYPE_CHOICES = (
+        ('ZCQX', u'资产权限申请'),
+        ('GPQX', u'用户组权限申请')
     )
-    name = models.CharField(max_length=80)
-    uuid = models.CharField(max_length=100)
-    role = models.CharField(max_length=2, choices=USER_ROLE_CHOICES, default='CU')
-    group = models.ManyToManyField(UserGroup)
-    ssh_key_pwd = models.CharField(max_length=200)
-    # is_active = models.BooleanField(default=True)
-    # last_login = models.DateTimeField(null=True)
-    # date_joined = models.DateTimeField(null=True)
+    app_type = models.CharField(max_length=8, choices=APP_TYPE_CHOICES, default='ZCQX')
 
     def __unicode__(self):
-        return self.username
+        return self.app_name
 
 
-class AdminGroup(models.Model):
-    """
-    under the user control group
-    用户可以管理的用户组，或组的管理员是该用户
-    """
-
-    user = models.ForeignKey(User)
-    group = models.ForeignKey(UserGroup)
-
-    def __unicode__(self):
-        return '%s: %s' % (self.user.username, self.group.name)
-
-
-class Document(models.Model):
-    def upload_to(self, filename):
-        return 'upload/'+str(self.user.id)+time.strftime('/%Y/%m/%d/', time.localtime())+filename
-
-    docfile = models.FileField(upload_to=upload_to)
-    user = models.ForeignKey(User)
+class CheckList(models.Model):
+    rightapply = models.ForeignKey(RightApply, related_name='check_list')
+    checkorder = models.ForeignKey(CheckOrder, related_name='check_list')
+    insert_time = models.TimeField(auto_now=True)
+    finish_time = models.TimeField(null=True)
+    check_status = models.NullBooleanField(null=True)
+    check_if = models.NullBooleanField(default=False)
+    check_desc = models.TextField(null=True)
